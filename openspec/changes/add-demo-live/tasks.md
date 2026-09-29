@@ -17,11 +17,11 @@
 
 - [x] 3.1 Verify `Python/main.py`, `Python/requirements.txt`, and `Python/.streamlit/config.toml` form a deployable Streamlit Community Cloud project and confirm the app starts successfully in a no-Docker test environment.
 - [x] 3.2 Run the complete unit/AppTest suite and `openspec validate add-demo-live --strict`, and verify all checks pass before deployment.
-- [ ] 3.3 Commit and push the implementation to `main`, then verify the GitHub Actions Python test workflow succeeds for that commit.
+- [x] 3.3 Commit and push the implementation to `main`, then verify the GitHub Actions Python test workflow succeeds for that commit.
 
 ## 4. Public release and documentation
 
-- [ ] 4.1 Create the Streamlit Community Cloud app from `SamuelAsherRivello/python-docker-model`, branch `main`, entry point `Python/main.py`, and verify the assigned public URL reaches a healthy application.
+- [x] 4.1 Create the Streamlit Community Cloud app from `SamuelAsherRivello/python-docker-model`, branch `main`, entry point `Python/main.py`, and verify the assigned public URL reaches a healthy application.
 - [ ] 4.2 Verify the deployed warning is centered at normal and narrow viewport widths, the exact message is visible, selectors cannot initiate model work, refresh is stable, and no raw Docker diagnostics or uncaught exceptions appear.
-- [ ] 4.3 Replace the README's localhost-only Live Demo entry with the verified public URL and explain that hosted model inference is unavailable while local Docker Model Runner remains supported; verify the rendered links and wording.
+- [x] 4.3 Replace the README's localhost-only Live Demo entry with the verified public URL and explain that hosted model inference is unavailable while local Docker Model Runner remains supported; verify the rendered links and wording.
 - [ ] 4.4 Commit and push the deployment documentation, verify the public README and live demo from an unauthenticated browser session, and record the final GitHub and Streamlit URLs in the completion report.

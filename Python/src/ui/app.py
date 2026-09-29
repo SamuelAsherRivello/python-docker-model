@@ -15,7 +15,8 @@ def render_model_unavailable() -> None:
         """
         <style>
             .st-key-model-unavailable {
-                min-height: calc(100% - 2rem);
+                height: calc(100dvh - 115px - 105px - 2rem);
+                min-height: calc(100dvh - 115px - 105px - 2rem);
                 display: flex;
                 align-items: center;
                 justify-content: center;

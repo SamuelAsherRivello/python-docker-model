@@ -10,6 +10,8 @@ Python Docker Model is a Streamlit application for running configurable query wo
 
 ## Live Demo
 
+- Hosted demo: [Open Python Docker Model on Streamlit Community Cloud](https://samuelasherrivello-python-docker-model-pythonmain-bk0iq4.streamlit.app/).
+- Hosted model inference is unavailable because Streamlit Community Cloud cannot access Docker Model Runner. Run the project locally with Docker Desktop and Docker Model Runner to use model-backed workflows.
 - Local development server: [http://localhost:8501](http://localhost:8501) after following the setup and run instructions below.
 
 ## Table of Contents
@@ -43,7 +45,7 @@ The application requires Windows, Python 3.10 or newer, Docker Desktop with Dock
 
 ### 🛠 Release Version
 
-1. From the repository root, run `Python\.venv\Scripts\python.exe -m unittest discover -s Python\tests -p "test*.py"`.
+1. From `Python/`, run `.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test*.py"`.
 2. Create an annotated version tag with `git tag -a vX.Y.Z -m "Release vX.Y.Z"`.
 3. Push the tag with `git push origin vX.Y.Z`, then create the corresponding GitHub release.
 
