@@ -1,0 +1,13 @@
+{
+  "workflows": {
+    "Workflow 1": [
+      "query-step",
+      "output-step"
+    ],
+    "Workflow 2": [
+      "query-step",
+      "llm-prompt-step",
+      "output-step"
+    ]
+  }
+}
