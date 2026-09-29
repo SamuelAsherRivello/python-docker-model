@@ -1,8 +1,11 @@
 import unittest
 from unittest.mock import patch
+from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from src.Workflows.workflow import WorkflowConfigurationError
+from src.ui.app import MODEL_UNAVAILABLE_MESSAGE
 from src.ui.layout.body import (
     ACTIVE_STEP_KEY,
     FINGERPRINT_KEY,
@@ -10,6 +13,7 @@ from src.ui.layout.body import (
     MODEL_KEY,
     RUN_ID_KEY,
     WORKFLOW_KEY,
+    reset_workflow_state,
     sync_workflow_state,
 )
 
@@ -25,17 +29,35 @@ FULL_APP_SCRIPT = """
 from src.ui.layout.body import render_body
 from src.ui.layout.footer import render_footer
 
-selected_model, selected_workflow, workflows, error = render_footer()
-if error:
-    raise RuntimeError(error)
-render_body(selected_model, selected_workflow, workflows)
+footer_state = render_footer()
+if footer_state.fatal_error:
+    raise RuntimeError(footer_state.fatal_error)
+render_body(
+    footer_state.selected_model,
+    footer_state.selected_workflow,
+    footer_state.workflows,
+)
 """
 
 FOOTER_SCRIPT = """
+import streamlit as st
 from src.ui.layout.footer import render_footer
 
-render_footer()
+footer_state = render_footer()
+st.session_state["footer_test_state"] = {
+    "model_available": footer_state.model_available,
+    "model_diagnostic": footer_state.model_diagnostic,
+    "fatal_error": footer_state.fatal_error,
+}
 """
+
+APP_SCRIPT = """
+from src.ui.app import render_app
+
+render_app()
+"""
+
+PROJECT_ROOT = Path(__file__).parents[1]
 
 
 def body_app(workflow_name: str) -> AppTest:
@@ -96,6 +118,22 @@ class WorkflowStateTests(unittest.TestCase):
             ("ai/two", "Workflow 1", ("query-step", "output-step")),
         )
 
+    def test_reset_workflow_state_preserves_unrelated_values(self):
+        state = {
+            ACTIVE_STEP_KEY: 1,
+            FINGERPRINT_KEY: ("ai/test", "Workflow 1", ("query-step",)),
+            MESSAGES_KEY: {0: {"IsError": False, "Message": "stale"}},
+            MODEL_KEY: "ai/test",
+            RUN_ID_KEY: 7,
+            WORKFLOW_KEY: "Workflow 1",
+            "workflow-query-7": "stale query",
+            "unrelated": "keep me",
+        }
+
+        reset_workflow_state(state)
+
+        self.assertEqual(state, {"unrelated": "keep me"})
+
 
 class WorkflowUiTests(unittest.TestCase):
     def test_footer_displays_model_and_default_workflow_selectors(self):
@@ -111,6 +149,116 @@ class WorkflowUiTests(unittest.TestCase):
             app.selectbox(key="selected_workflow").options,
             ["Workflow 1", "Workflow 2"],
         )
+        self.assertTrue(app.session_state["footer_test_state"]["model_available"])
+        self.assertIsNone(app.session_state["footer_test_state"]["fatal_error"])
+
+    def test_footer_represents_model_unavailability_without_a_fatal_error(self):
+        with patch(
+            "src.ui.layout.footer.DockerLLM.list_models",
+            return_value=([], "docker command failed with private host details"),
+        ):
+            app = AppTest.from_string(FOOTER_SCRIPT).run()
+
+        self.assertFalse(app.exception)
+        state = app.session_state["footer_test_state"]
+        self.assertFalse(state["model_available"])
+        self.assertIn("private host details", state["model_diagnostic"])
+        self.assertIsNone(state["fatal_error"])
+        self.assertTrue(app.selectbox(key="selected_model").disabled)
+
+    def test_footer_keeps_workflow_configuration_errors_fatal(self):
+        with (
+            patch(
+                "src.ui.layout.footer.DockerLLM.list_models",
+                return_value=(["ai/one"], None),
+            ),
+            patch(
+                "src.ui.layout.footer.load_workflows",
+                side_effect=WorkflowConfigurationError("workflow configuration is invalid"),
+            ),
+        ):
+            app = AppTest.from_string(FOOTER_SCRIPT).run()
+
+        self.assertFalse(app.exception)
+        state = app.session_state["footer_test_state"]
+        self.assertTrue(state["model_available"])
+        self.assertEqual(state["fatal_error"], "workflow configuration is invalid")
+
+    def test_app_renders_centered_warning_without_raw_docker_diagnostics(self):
+        with (
+            patch(
+                "src.ui.layout.footer.DockerLLM.list_models",
+                return_value=([], "docker command failed with private host details"),
+            ),
+            patch("src.ui.app.render_body") as render_body,
+        ):
+            app = AppTest.from_string(APP_SCRIPT).run()
+
+        self.assertFalse(app.exception)
+        app.get_by_key("model-unavailable")
+        self.assertEqual(app.warning[0].value, MODEL_UNAVAILABLE_MESSAGE)
+        self.assertNotIn(
+            "private host details",
+            " ".join(element.value for element in app.error),
+        )
+        self.assertTrue(app.selectbox(key="selected_model").disabled)
+        render_body.assert_not_called()
+
+    def test_unavailable_refresh_clears_partial_workflow_state(self):
+        with (
+            patch(
+                "src.ui.layout.footer.DockerLLM.list_models",
+                return_value=([], "docker unavailable"),
+            ),
+            patch("src.ui.app.render_body") as render_body,
+            patch("src.Workflows.workflow.DockerLLM.call") as model_call,
+        ):
+            app = AppTest.from_string(APP_SCRIPT).run()
+            app.session_state[ACTIVE_STEP_KEY] = 1
+            app.session_state[MESSAGES_KEY] = {
+                0: {"IsError": False, "Message": "partial query"},
+            }
+            app.session_state["workflow-query-9"] = "partial query"
+            app.session_state["unrelated"] = "keep me"
+            app = app.button(key="refresh").click().run()
+
+        self.assertFalse(app.exception)
+        self.assertEqual(app.warning[0].value, MODEL_UNAVAILABLE_MESSAGE)
+        self.assertNotIn(ACTIVE_STEP_KEY, app.session_state)
+        self.assertNotIn(MESSAGES_KEY, app.session_state)
+        self.assertNotIn("workflow-query-9", app.session_state)
+        self.assertEqual(app.session_state["unrelated"], "keep me")
+        render_body.assert_not_called()
+        model_call.assert_not_called()
+
+    def test_app_renders_fatal_workflow_errors_without_the_model_warning(self):
+        with (
+            patch(
+                "src.ui.layout.footer.DockerLLM.list_models",
+                return_value=(["ai/one"], None),
+            ),
+            patch(
+                "src.ui.layout.footer.load_workflows",
+                side_effect=WorkflowConfigurationError("workflow configuration is invalid"),
+            ),
+        ):
+            app = AppTest.from_string(APP_SCRIPT).run()
+
+        self.assertFalse(app.exception)
+        self.assertEqual(app.error[0].value, "workflow configuration is invalid")
+        self.assertEqual(len(app.warning), 0)
+
+    def test_real_entrypoint_starts_without_docker(self):
+        with patch(
+            "src.llm.docker_llm.subprocess.run",
+            side_effect=FileNotFoundError("docker"),
+        ):
+            app = AppTest.from_file(PROJECT_ROOT / "main.py").run()
+
+        self.assertFalse(app.exception)
+        app.get_by_key("model-unavailable")
+        self.assertEqual(app.warning[0].value, MODEL_UNAVAILABLE_MESSAGE)
+        self.assertTrue(app.selectbox(key="selected_model").disabled)
 
     def test_workflow_one_renders_two_cards_and_never_calls_llm(self):
         with patch("src.Workflows.workflow.DockerLLM.call") as model_call:

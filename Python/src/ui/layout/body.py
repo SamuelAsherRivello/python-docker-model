@@ -24,6 +24,22 @@ MESSAGES_KEY = "workflow_step_messages"
 MODEL_KEY = "workflow_selected_model"
 RUN_ID_KEY = "workflow_run_id"
 WORKFLOW_KEY = "workflow_selected_name"
+WORKFLOW_STATE_KEYS = {
+    ACTIVE_STEP_KEY,
+    FINGERPRINT_KEY,
+    MESSAGES_KEY,
+    MODEL_KEY,
+    RUN_ID_KEY,
+    WORKFLOW_KEY,
+}
+QUERY_WIDGET_PREFIX = "workflow-query-"
+
+
+def reset_workflow_state(state: MutableMapping[str, Any]) -> None:
+    """Remove only workflow-run and query-widget values from session state."""
+    for key in tuple(state):
+        if key in WORKFLOW_STATE_KEYS or str(key).startswith(QUERY_WIDGET_PREFIX):
+            del state[key]
 
 
 def sync_workflow_state(

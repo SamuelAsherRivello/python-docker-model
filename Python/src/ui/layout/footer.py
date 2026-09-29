@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import streamlit as st
 
 from src.Workflows.workflow import WorkflowConfigurationError, load_workflows
@@ -5,9 +7,21 @@ from src.llm.docker_llm import DockerLLM
 from src.llm.illm import ILLM
 
 
+@dataclass(frozen=True)
+class FooterState:
+    """Selections and availability discovered while rendering the footer."""
+
+    selected_model: str | None
+    selected_workflow: str | None
+    workflows: dict[str, list[str]]
+    model_available: bool
+    model_diagnostic: str | None = None
+    fatal_error: str | None = None
+
+
 def render_footer(
     llm: ILLM | None = None,
-) -> tuple[str | None, str | None, dict[str, list[str]], str | None]:
+) -> FooterState:
     """Render model and workflow selectors and return their current values."""
     llm = llm or DockerLLM()
     models, model_error = llm.list_models()
@@ -41,7 +55,15 @@ def render_footer(
             width=260,
         )
 
-    errors = [error for error in (model_error, workflow_error) if error]
-    if not models and not model_error:
-        errors.append("No local Docker models found. Pull one with `docker model pull <model>`.")
-    return selected_model, selected_workflow, workflows, "\n\n".join(errors) or None
+    model_diagnostic = model_error
+    if not models and not model_diagnostic:
+        model_diagnostic = "No local Docker models were found."
+
+    return FooterState(
+        selected_model=selected_model,
+        selected_workflow=selected_workflow,
+        workflows=workflows,
+        model_available=bool(models),
+        model_diagnostic=model_diagnostic,
+        fatal_error=workflow_error,
+    )

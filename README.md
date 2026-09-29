@@ -1,91 +1,92 @@
 # Python Docker Model
 
-Python Docker Model is a Streamlit application for running configurable query workflows against local models exposed by Docker Model Runner. A workflow can pass input directly to output or send it through a selected model first, while the interface shows each step as a numbered status card.
+Python Docker Model is a Streamlit application for running configurable query workflows against local models exposed by Docker Model Runner. Workflows can pass input directly to output or send it through a selected model while the interface presents each stage as a numbered status card.
 
-![Python Docker Model workflow interface](documentation/layout-qa.png)
+## Images
 
-## Repository layout
+### Screenshots
 
-The repository root contains project guidance, documentation, and OpenSpec planning artifacts. The buildable application lives in `Python/`.
+<a href="documentation/layout-qa.png"><img src="documentation/layout-qa.png" width="400" alt="Python Docker Model Streamlit interface" /></a>
 
-```text
-.
-|-- .agents/                 Project-specific agent skills
-|-- .codex/                  Codex project identity
-|-- .github/                 GitHub automation
-|-- documentation/           Supporting documentation and images
-|-- openspec/                Specifications and proposed changes
-|-- Python/                  Buildable Streamlit project
-|   |-- .streamlit/          Streamlit configuration
-|   |-- src/                 Application source
-|   |-- tests/               Automated tests
-|   |-- main.py              Streamlit entry point
-|   |-- requirements.txt     Python dependencies
-|   |-- run.bat              Background launcher
-|   `-- setup.bat            Local environment setup
-|-- AGENTS.md
-|-- LICENSE
-`-- README.md
-```
+## Live Demo
 
-## Prerequisites
+- Local development server: [http://localhost:8501](http://localhost:8501) after following the setup and run instructions below.
 
-- Windows with Python 3.10 or newer
-- Docker Desktop with Docker Model Runner enabled
-- At least one locally available model
+## Table of Contents
 
-For example:
+1. [Images](#images)
+2. [Live Demo](#live-demo)
+3. [Getting Started](#getting-started)
+4. [Project Details](#project-details)
+5. [Credits](#credits)
 
-```powershell
-docker model pull ai/smollm2
-docker model list
-```
+## Getting Started
 
-## Setup and run
+The application requires Windows, Python 3.10 or newer, Docker Desktop with Docker Model Runner enabled, and at least one locally available model. Repository-level guidance and specifications stay at the root; all buildable application files live in `Python/`.
 
-Run the project scripts from the buildable project directory:
+### 🛠 Build Project
 
-```powershell
-cd Python
-.\setup.bat
-.\run.bat
-```
+1. From the repository root, pull or confirm a Docker model:
+   ```powershell
+   docker model pull ai/smollm2
+   docker model list
+   ```
+2. Change to the buildable project root with `cd Python`.
+3. Run `.\setup.bat` to create or update `Python/.venv` and install the required packages.
 
-Then open <http://localhost:8501>.
+### 🛠 Run Project
 
-`run.bat` starts Streamlit in the background without opening a persistent command window. Running it again reuses the listener already on port 8501. Runtime logs are written to `Python/.run/`.
+1. From `Python/`, run `.\run.bat`.
+2. Open [http://localhost:8501](http://localhost:8501).
+3. Run `.\run.bat` again at any time to reuse the existing listener. The launcher runs Streamlit in the background without leaving a persistent command window and writes logs to `Python/.run/`.
+4. To run in the foreground instead, use `.\.venv\Scripts\python.exe -m streamlit run main.py` from `Python/`.
 
-To run Streamlit in the foreground instead:
+### 🛠 Release Version
 
-```powershell
-cd Python
-.\.venv\Scripts\python.exe -m streamlit run main.py
-```
+1. From the repository root, run `Python\.venv\Scripts\python.exe -m unittest discover -s Python\tests -p "test*.py"`.
+2. Create an annotated version tag with `git tag -a vX.Y.Z -m "Release vX.Y.Z"`.
+3. Push the tag with `git push origin vX.Y.Z`, then create the corresponding GitHub release.
 
-## Workflows
+## Project Details
 
-Workflow definitions live in `Python/src/Workflows/workflow.json`.
+Workflows are declared in `Python/src/Workflows/workflow.json`. Workflow 1 passes the query directly to output, while Workflow 2 sends the query through the selected Docker model first. Changing the model or workflow resets the current run.
 
-- **Workflow 1** passes the query directly to the output step.
-- **Workflow 2** sends the query through the selected Docker model before displaying the response.
+### 📝 Structure
 
-The footer provides model and workflow selectors. Changing either selection resets the current workflow run.
+- `Python/main.py` provides the Streamlit entry point.
+- `Python/src/Workflows/` contains workflow configuration, loading, and step implementations.
+- `Python/src/ui/` contains the application shell and workflow step-card interface.
+- `Python/src/llm/` contains the Docker Model Runner adapter.
+- `Python/tests/` contains the automated test suite.
+- `documentation/` contains README images and supporting project documentation.
 
-## Tests
+### 📦 AI
 
-```powershell
-cd Python
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test*.py"
-```
+- `AGENTS.md` contains repository-specific AI agent guidance.
+- `.codex/project-identity.md` records the repository and buildable project boundaries.
+- [openspec](openspec/) contains the repository's specification workflow configuration and change artifacts.
+- `.agents/skills/` contains project-local OpenSpec skills.
 
-GitHub Actions runs the same suite for pushes and pull requests.
+### 📦 Packages
 
-## Development workflow
+- [Streamlit](https://streamlit.io/) provides the application interface and session state.
+- [Docker Model Runner](https://docs.docker.com/ai/model-runner/) provides local model discovery and inference through the Docker CLI.
+- Python's built-in `unittest` framework provides the automated test runner.
 
-OpenSpec artifacts remain at the repository root so they describe the repository as a whole. Source paths in specifications start with `Python/` to make the project boundary explicit.
+## Credits
 
-See [documentation/README.md](documentation/README.md) for links to the main implementation areas.
+### 💡 Contributors
 
-## License
+- Samuel Asher Rivello - Over 25 years of game development XP (2026)
 
-This project is available under the [MIT License](LICENSE).
+### 💡 Contact
+
+- [LinkedIn.com/in/SamuelAsherRivello](https://Linkedin.com/in/SamuelAsherRivello) ⭐
+- [GitHub.com/SamuelAsherRivello](https://github.com/SamuelAsherRivello/)
+- [Twitter.com/srivello](https://twitter.com/srivello/)
+- Resume / Portfolio: [SamuelAsherRivello.com](http://www.SamuelAsherRivello.com)
+
+### 💡 License
+
+- Provided as-is under the [MIT License](LICENSE).
+- Copyright © 2026 Samuel Asher Rivello.

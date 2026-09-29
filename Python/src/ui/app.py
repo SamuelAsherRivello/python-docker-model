@@ -1,7 +1,45 @@
 import streamlit as st
-from src.ui.layout.body import render_body
+from src.ui.layout.body import render_body, reset_workflow_state
 from src.ui.layout.footer import render_footer
 from src.ui.layout.header import render_header
+
+
+MODEL_UNAVAILABLE_MESSAGE = (
+    "Docker Models not accessible. App designed to run locally, not yet online."
+)
+
+
+def render_model_unavailable() -> None:
+    """Render the stable hosted-demo state when no Docker model is usable."""
+    st.html(
+        """
+        <style>
+            .st-key-model-unavailable {
+                min-height: calc(100% - 2rem);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+                box-sizing: border-box;
+            }
+            .st-key-model-unavailable > div {
+                width: min(720px, 100%);
+            }
+            .st-key-model-unavailable [data-testid="stAlert"] {
+                text-align: center;
+            }
+            .st-key-model-unavailable [data-testid="stCaptionContainer"] {
+                text-align: center;
+            }
+        </style>
+        """
+    )
+    with st.container(key="model-unavailable"):
+        st.warning(MODEL_UNAVAILABLE_MESSAGE, icon=":material/cloud_off:")
+        st.caption(
+            "Run this project locally with Docker Desktop and Docker Model Runner "
+            "to select a model and execute workflows."
+        )
 
 
 def render_app() -> None:
@@ -91,11 +129,19 @@ def render_app() -> None:
         render_header()
     with st.bottom:
         with st.container(key="footer"):
-            selected_model, selected_workflow, workflows, footer_error = render_footer()
-    if footer_error:
+            footer_state = render_footer()
+    if footer_state.fatal_error:
         with st.container(key="body"):
-            st.error(footer_error)
-            st.info("Start Docker Model Runner and pull a model, for example: docker model pull ai/smollm2")
+            st.error(footer_state.fatal_error)
+        return
+    if not footer_state.model_available:
+        reset_workflow_state(st.session_state)
+        with st.container(key="body"):
+            render_model_unavailable()
         return
     with st.container(key="body"):
-        render_body(selected_model, selected_workflow, workflows)
+        render_body(
+            footer_state.selected_model,
+            footer_state.selected_workflow,
+            footer_state.workflows,
+        )
